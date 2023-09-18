@@ -4,15 +4,14 @@
 #include <queue>
 #include <set>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-#include "absl/container/btree_set.h"
 #include "absl/container/btree_map.h"
-
-int main() {
-  printf("Hello brian.\n");
-  return 0;
-}
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 void Arrays() {
   // Static arrays. The number in the [] _has_ to be a
@@ -136,4 +135,120 @@ void Trees() {
   // versions, but are effectively the same and have all the same methods.
   absl::btree_set<Person> people3;
   absl::btree_map<std::string, Person> people4;
+}
+
+void HashTables() {
+  // C++ only somewhat recently got hashtables. std::set and std::map are
+  // implemented as red-black trees and the only Type requirement they have is
+  // that objects can be '<' compared (see the operator< function in Person
+  // above). The hash table equivalents are unordered_map and unordered_set.
+
+  // But with the hash table versions, there needs to be a way to "hash" the
+  // key value and provide a way to check equality. For ints or strings that is
+  // already built-in. For your own type like Person, you have to provide a hash
+  // function. That is basically a function that takes your custom key as input
+  // and spits out a 'size_t' (unsigned int) with totally random bits based on
+  // the input. We could just hash Person based on name, but if we wanted people
+  // to be unique based on age also then we would have to make sure the random
+  // value produced is different if age == age but name != name, or name == name
+  // but age != age.
+
+  // https://en.cppreference.com/w/cpp/container/unordered_set
+
+  // Simple use case
+  std::unordered_map<std::string, int> ages;
+  ages.insert({"Bill", 38});
+
+  // Annoyingly complex declaration using custom types hash functions and ==.
+  auto hash_fn = [](const Person& person) {
+    return std::hash<std::string>{}(person.name);
+  };
+  auto eq_fn = [](const Person& lhs, const Person& rhs) {
+    return lhs.name == rhs.name;  // Don't do age since we didn't include it in
+                                  // the hash function.
+  };
+  std::unordered_set<Person, decltype(hash_fn), decltype(eq_fn)> people_set(
+      /*bucket_size????=*/0, hash_fn, eq_fn);
+  people_set.insert(Person{"Bill", 38});
+
+  // One major reason to use the tree alternatives is that if you ever need to
+  // iterate through all elements in a set or map, then the order will be
+  // deterministic and in ascending order.
+  std::set<std::string> names;
+  std::unordered_set<std::string> unordered_names;
+  names.insert({"Bill", "Jen", "Brian", "Steve"});
+  unordered_names.insert({"Bill", "Jen", "Brian", "Steve"});
+  // Names should always be printed in alphabetical order because of std::set vs
+  // unordered set.
+  for (const std::string& name : names) {
+    printf("Ordered Name: %s\n", name.c_str());
+  }
+  // Who knows. Can even change from run to run of the program:
+  for (const std::string& name : unordered_names) {
+    printf("Unordered Name: %s\n", name.c_str());
+  }
+
+  // For this reason I almost always used the tree-based sets/maps. Unless you
+  // are pushing 1 million+ elements into the table the big-O performance
+  // differences between them are not relevant.
+
+  // There are also absl versions of the hash tables that are probably better
+  // alternatives if you actually want to use a hash table:
+  // https://abseil.io/docs/cpp/guides/container#hash-tables
+
+  absl::flat_hash_set<std::string> more_names;
+  // It has its own hashing system that has a handy way to combine the hashes
+  // from multiple fields.
+}
+
+void NotArrays() {
+  // std::array is exactly equivalent to the static array above but it's a
+  // template. This is almost never used even though the name makes it seem like
+  // it would be. I think it only exists for some technical
+  // template-metaprogramming reason.
+  std::array<int, 10> ints;
+  ints[0] = 5;
+
+  // Pair is just a 2 value structure. It's mainly used in things like std::map
+  // where it's essentially a std::set but with each element being a
+  // pair<Key,Value>. Not used super often in
+  std::pair<std::string, int> my_pair;
+  my_pair.first = "Bill";
+  my_pair.second = 38;
+
+  // Another way of making pairs which is super convenient. make_pair figures
+  // out the types to put into the <> based on type deduction. Unfortunately the
+  // first type here will be "const char*" and not "std::string".
+  auto my_second_pair = std::make_pair("Bill", 38);
+
+  // Tuples are like pairs with any number of values. The size of tuples and
+  // what types they hold are always known at compile time. This is very close
+  // to just making a struct with these values. You get the values back out
+  // using std::get with the index of the element you want (also has to be known
+  // at compile time).
+  std::tuple<std::string, int, double> person =
+      std::make_tuple("Bill", 38, 6.5);
+  printf("%s is %d years old and %.1f feet tall\n", std::get<0>(person).c_str(),
+         std::get<1>(person), std::get<2>(person));
+
+  // Most commonly I'd use a tuple in a situation where a funciton _needs_ to
+  // return multiple values and you can't be fucking bothered to make a
+  // structure for it. One handy thing you can do is assign into multiple values
+  // from a tuple.
+  auto get_person = []() {
+    return std::make_tuple(std::string("Sam"), 14, 5.2);
+  };
+  // This breaks up the tuple into multiple local variables. I only learned
+  // about this recently at google.
+  auto [name, age, height] = get_person();
+  printf("Also %s is %d years old and %.1f feet tall\n", name.c_str(), age,
+         height);
+}
+
+int main() {
+  Arrays();
+  Trees();
+  HashTables();
+  NotArrays();
+  return 0;
 }
