@@ -34,7 +34,7 @@ void Arrays() {
   int array_size = 10;
   int* num_array = new int[array_size];
   num_array[0] = 5;
-  delete num_array;
+  delete[] num_array;
 
   // Same as the dynamic array above but with good style. unique_ptr is a
   // wrapper around a raw pointer that will automatically do the deleting for
