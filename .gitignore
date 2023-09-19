@@ -4,6 +4,7 @@
 --verbose_explanations
 # Ignore Vim files
 *.swp
+*~
 # Autocomplete / Intellisense
 /compile_commands.json
 /external
