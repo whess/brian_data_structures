@@ -8,5 +8,6 @@
   "files.associations": {
     "xstring": "cpp",
     "queue": "cpp"
-  }
+  },
+  "bazel.queriesShareServer": true
 }
